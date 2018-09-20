@@ -1,8 +1,10 @@
 package lac;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -12,8 +14,10 @@ import java.util.logging.Logger;
  * @author juniocezar
  */
 public class JMeasureLibrary {
-    private BufferedWriter writer;
     private boolean monitorEnabled = false;
+    File file=null;
+    FileOutputStream fileOutputStream=null;
+    PrintStream printStream=null;
     
     /**
      * Constructor for the Library. Instantiates the writer, pointing it to the 
@@ -22,7 +26,9 @@ public class JMeasureLibrary {
      */
     public JMeasureLibrary(String usb) {
         try {
-            writer = new BufferedWriter(new FileWriter(usb));
+            File file=new File(usb);
+            fileOutputStream=new FileOutputStream(file);
+            printStream=new PrintStream(fileOutputStream);
         } catch (IOException ex) {
             Logger.getLogger(JMeasureLibrary.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -46,9 +52,9 @@ public class JMeasureLibrary {
     private boolean changeMeterState(String state) {
         boolean success = true;
         try {                        
-            writer.write(state);
-            writer.close();
-        } catch (IOException ex) {
+            //writer.write(state);            
+            printStream.print(state);
+        } catch (Exception ex) {
             success = false;
             Logger.getLogger(JMeasureLibrary.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -72,8 +78,23 @@ public class JMeasureLibrary {
      * @return Success of operation.
      */
     public boolean disableMonitor() {
-        monitorEnabled = false;
-        return changeMeterState("D");
+        monitorEnabled = false;        
+        boolean state = changeMeterState("D");
+        
+        // move this writer close to somewhere else
+        try {
+            if(fileOutputStream!=null){
+		fileOutputStream.close();
+            }
+            if(printStream!=null){
+		printStream.close();
+            }
+	} catch (Exception e) {
+            e.printStackTrace();
+	}
+        
+        return state;
+        
     }
     
     /**
@@ -98,24 +119,29 @@ public class JMeasureLibrary {
     
     
     /**
-     * Sample
+     * Sample usage for the library
      */
     public static void sample(){
-        JMeasureLibrary SL = new JMeasureLibrary();
-        SL.enableMonitor();
+        System.out.println("Sample started");
         
-        SL.startMeasurement();
+        JMeasureLibrary JM = new JMeasureLibrary();
+        JM.enableMonitor();       
+        
+        JM.startMeasurement();
         try {
-            Thread.sleep(1);
+            System.out.println("Sample paused");
+            Thread.sleep(3000);
         } catch (InterruptedException ex) {
             //
         }
+                
+        System.out.println("Sample restored");
+        JM.finishMeasurement();
+        JM.disableMonitor();        
         
-        int a =0;
-        for(int i = 0 ; i < 100000000; i--)
-            a++;
-        
-        SL.finishMeasurement();
-        SL.disableMonitor();        
+    }
+    
+    public static void main(String[] args){
+        sample();
     }
 }
