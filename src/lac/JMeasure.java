@@ -13,7 +13,7 @@ import java.util.logging.Logger;
  * smartpower 2 device
  * @author juniocezar
  */
-public class JMeasureLibrary {
+public class JMeasure {
     private boolean monitorEnabled = false;
     File file=null;
     FileOutputStream fileOutputStream=null;
@@ -24,20 +24,23 @@ public class JMeasureLibrary {
      * usb device.
      * @param usb The location for the usb device.
      */
-    public JMeasureLibrary(String usb) {
+    public JMeasure(String usb) {
         try {
             File file=new File(usb);
             fileOutputStream=new FileOutputStream(file);
             printStream=new PrintStream(fileOutputStream);
         } catch (IOException ex) {
-            Logger.getLogger(JMeasureLibrary.class.getName()).log(Level.SEVERE, null, ex);
+            System.err.println("JMeasureLibrary is killing the application because" + 
+                "of the following problem:\n\n");
+            Logger.getLogger(JMeasure.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
         }
     }
     
     /**
      * Calls the main constructor with the usb device pointed to "/dev/ttyUSB0".
      */
-    public JMeasureLibrary() {
+    public JMeasure() {
         // USB0 is the default first serial usb port to be used
         this("/dev/ttyUSB0");
     }
@@ -56,7 +59,7 @@ public class JMeasureLibrary {
             printStream.print(state);
         } catch (Exception ex) {
             success = false;
-            Logger.getLogger(JMeasureLibrary.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(JMeasure.class.getName()).log(Level.SEVERE, null, ex);
         }
         return success;
     }
@@ -109,11 +112,11 @@ public class JMeasureLibrary {
     }
     
     /**
-     * Sends a 'finish measurement' signal to the measurement device. This way,
+     * Sends a 'stop measurement' signal to the measurement device. This way,
      * the device will report the value 0 (ZERO) as power value.
      * @return Success of operation.
      */
-    public boolean finishMeasurement() {
+    public boolean stopMeasurement() {
         return changeMeterState("B");
     }
     
@@ -124,7 +127,7 @@ public class JMeasureLibrary {
     public static void sample(){
         System.out.println("Sample started");
         
-        JMeasureLibrary JM = new JMeasureLibrary();
+        JMeasure JM = new JMeasure();
         JM.enableMonitor();       
         
         JM.startMeasurement();
@@ -136,12 +139,26 @@ public class JMeasureLibrary {
         }
                 
         System.out.println("Sample restored");
-        JM.finishMeasurement();
+        JM.stopMeasurement();
         JM.disableMonitor();        
         
     }
     
     public static void main(String[] args){
-        sample();
+        if (args.length < 1)
+            return;
+        
+        JMeasure jm = new JMeasure();
+        
+        if(args[0].equals("enable"))
+            jm.enableMonitor();
+        else if(args[0].equals("disable"))
+            jm.disableMonitor();
+        else if(args[0].equals("start"))
+            jm.startMeasurement();
+        else if(args[0].equals("stop"))
+            jm.stopMeasurement();
+        else
+            System.err.println("Command: " + args[0] + " is not valid");
     }
 }
